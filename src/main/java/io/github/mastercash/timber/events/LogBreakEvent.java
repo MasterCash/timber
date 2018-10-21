@@ -1,5 +1,7 @@
 package io.github.mastercash.timber.events;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
@@ -14,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
+
 
 public class LogBreakEvent implements Listener {
 
@@ -35,9 +38,11 @@ public class LogBreakEvent implements Listener {
         if(player == null) return;
         else tool = player.getInventory().getItemInMainHand();
 
-        if(!isAxe(tool)) return;
+        if(!isAxe(tool)) {
+            Bukkit.getLogger().info(tool.toString());
+            return;
+        }
         if(!isLogBlock(block)) return;
-        if(!isBlockBelowDirt(block)) return;
 
         // Everything is in order.
 
@@ -58,8 +63,10 @@ public class LogBreakEvent implements Listener {
             // ItemMeta for the tool.
             Damageable meta;
 
+            //Deal with overlap being dealt with.
+            if(!isLogBlock(temp)) continue;
             // Add Neighbors to check.
-            addNeighbors(blockQueue, block);
+            addNeighbors(blockQueue, temp);
 
             // Break the current block.
             temp.breakNaturally(tool);
@@ -70,14 +77,18 @@ public class LogBreakEvent implements Listener {
 
             // Set new durability.
             // If unbreaking enchantment, chance that it doesn't take damage.
-            if(new Random().nextInt(100) < (100/(tool.getEnchantmentLevel(Enchantment.DURABILITY) - 1))) {
-                meta.setDamage(meta.getDamage() - 1);
+            if(new Random().nextInt(100) < (100/(tool.getEnchantmentLevel(Enchantment.DURABILITY) + 1))) {
+                meta.setDamage(meta.getDamage() + 1);
                 tool.setItemMeta((ItemMeta) meta);
             }
 
             durability = ((Damageable) tool.getItemMeta()).getDamage();
         }
 
+        // If tool should be broken, break it.
+        if(maxDurability - durability <= 0) {
+            player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+        }
 
 
     }
@@ -122,22 +133,6 @@ public class LogBreakEvent implements Listener {
         }
     }
 
-
-    // Check to see if the block below is a dirt block, this is to try
-    // and stop breaking everything but trees.
-    // TODO: set this up as a setting in config.yml to allow changes.
-    private boolean isBlockBelowDirt(Block block) {
-        Block below = block.getRelative(BlockFace.DOWN);
-
-        switch (below.getType()) {
-            case DIRT:
-            case GRASS_BLOCK:
-            case COARSE_DIRT:
-                return true;
-            default:
-                return false;
-        }
-    }
 
     // Add the Neighbors of a block to the queue
     // TODO: make more efficient, remove overlap.
