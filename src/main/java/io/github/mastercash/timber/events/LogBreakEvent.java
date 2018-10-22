@@ -38,10 +38,7 @@ public class LogBreakEvent implements Listener {
         if(player == null) return;
         else tool = player.getInventory().getItemInMainHand();
 
-        if(!isAxe(tool)) {
-            Bukkit.getLogger().info(tool.toString());
-            return;
-        }
+        if(!isAxe(tool)) return;
         if(!isLogBlock(block)) return;
 
         // Everything is in order.
