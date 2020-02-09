@@ -1,13 +1,16 @@
 name: Timber
-version: 1.1.1
+version: 1.2.2
 main: io.github.mastercash.timber.Main
 
-api-version: 1.13
+api-version: 1.15
 
 description: A lumberjack's best friend tree farming just got easier.
 load: POSTWORLD
 author: Master_Cash
 website: github.com/mastercash
+
+softdepend:
+- CoreProtect
 
 permissions:
   timber.*:

@@ -1,5 +1,6 @@
 package io.github.mastercash.timber.events;
 
+import io.github.mastercash.timber.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -18,12 +19,12 @@ import java.util.Queue;
 import java.util.Random;
 
 
+
 public class LogBreakEvent implements Listener {
 
     // EventHandler for player breaking a log.
     @EventHandler
     public void onPlayerBreakLog(BlockBreakEvent event) {
-
         //Variables
         Player player = event.getPlayer();
         Block block = event.getBlock();
@@ -32,16 +33,20 @@ public class LogBreakEvent implements Listener {
         int maxDurability;
         int durability;
 
-
-
         // Initial Checks
         if(player == null) return;
         else tool = player.getInventory().getItemInMainHand();
 
-        if(!isAxe(tool)) return;
-        if(!isLogBlock(block)) return;
+        player.sendMessage("Running timber");
 
+        if(!Utils.isAxe(tool)) return;
+        if(!Utils.isLogBlock(block)) return;
+        if (!player.isSneaking()) return;
         // Everything is in order.
+
+        player.sendMessage(("Attempting to break stuff"));
+        // Get the durability of the current tool.
+        durability = ((Damageable) tool.getItemMeta()).getDamage();
 
         // Add the starting block to the queue
         blockQueue.add(block);
@@ -49,8 +54,6 @@ public class LogBreakEvent implements Listener {
         // Get the Max Durability of the current tool.
         maxDurability = tool.getType().getMaxDurability();
 
-        // Get the durability of the current tool.
-        durability = ((Damageable) tool.getItemMeta()).getDamage();
 
         // Keep Looping through all the blocks till there are none left to check
         // or durability has run out.
@@ -60,12 +63,16 @@ public class LogBreakEvent implements Listener {
             // ItemMeta for the tool.
             Damageable meta;
 
-            //Deal with overlap being dealt with.
-            if(!isLogBlock(temp)) continue;
-            // Add Neighbors to check.
-            addNeighbors(blockQueue, temp);
+            //Deal with overlap.
+            if(!Utils.isLogBlock(temp)) continue;
 
-            // Break the current block.
+            // Add Neighbors to check.
+            Utils.addNeighbors(blockQueue, temp);
+
+
+            if (Utils.CoreProtect != null) {
+                Utils.CoreProtect.logRemoval(player.getName(), temp.getLocation(), temp.getType(), temp.getBlockData());
+            }
             temp.breakNaturally(tool);
 
             // Update the durability of the tool.
@@ -82,78 +89,5 @@ public class LogBreakEvent implements Listener {
             durability = ((Damageable) tool.getItemMeta()).getDamage();
         }
 
-        // If tool should be broken, break it.
-        if(maxDurability - durability <= 0) {
-            player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
-        }
-
-
-    }
-
-
-    // Helper Functions
-    // TODO: move these to a separate helper class.
-
-    // Check to see if the item is an axe.
-    // TODO: set this up as a setting in config.yml to allow changes.
-    private boolean isAxe(ItemStack tool) {
-        switch (tool.getType()) {
-            case DIAMOND_AXE:
-            case GOLDEN_AXE:
-            case IRON_AXE:
-            case STONE_AXE:
-            case WOODEN_AXE:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    // TODO: set this up as a setting in config.yml to allow changes.
-    private boolean isLogBlock(Block block) {
-        switch (block.getType()) {
-            case ACACIA_LOG:
-            case BIRCH_LOG:
-            case DARK_OAK_LOG:
-            case JUNGLE_LOG:
-            case OAK_LOG:
-            case SPRUCE_LOG:
-            case STRIPPED_ACACIA_LOG:
-            case STRIPPED_BIRCH_LOG:
-            case STRIPPED_DARK_OAK_LOG:
-            case STRIPPED_JUNGLE_LOG:
-            case STRIPPED_OAK_LOG:
-            case STRIPPED_SPRUCE_LOG:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-
-    // Add the Neighbors of a block to the queue
-    // TODO: make more efficient, remove overlap.
-    private void addNeighbors(Queue<Block> blocks, Block block) {
-        // Get block above so we can check the upper layer too for upper Diagonals.
-        Block above = block.getRelative(BlockFace.UP);
-
-        for(BlockFace face : BlockFace.values()) {
-            // Don't want lower blocks as we start from the bottom up.
-            if(face.getModY() < 0) continue;
-
-            // Remove the blocks that are neither diagonal or adjacent.
-            if(Math.abs(face.getModX()) > 1) continue;
-            if(Math.abs(face.getModY()) > 1) continue;
-            if(Math.abs(face.getModZ()) > 1) continue;
-
-            // Add any block that is a log to the queue around the current block
-            if(isLogBlock(block.getRelative(face))) {
-                blocks.add(block.getRelative(face));
-            }
-
-            if(isLogBlock(above.getRelative(face))) {
-                blocks.add(above.getRelative(face));
-            }
-        }
     }
 }
